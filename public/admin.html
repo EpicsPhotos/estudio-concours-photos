@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Gestion du concours</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f3f4f6;
+      background-image: url('background.png');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      margin: 0;
+      padding: 0;
+      color: #1f2937;
+      font-size: 16px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.96);
+      max-width: 700px;
+      margin: auto;
+      padding: 30px;
+      border-radius: 16px;
+      margin-top: 40px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      width: 140px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      margin-top: 20px;
+    }
+
+    textarea {
+      font-size: 15px;
+      padding: 8px;
+      font-family: 'Courier New', monospace;
+      background: #f9fafb;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    #reset-btn {
+      background: #10b981;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="logo.png" alt="Logo" class="logo">
+  </div>
+
+  
+  <div class="container" id="auth-container">
+    <h2>Authentification admin</h2>
+    <p style="font-size: 0.95em; color: #b91c1c; margin-bottom: 10px;">
+      ⚠️ Seul l’administrateur du concours peut accéder à cette section.
+    </p>
+    <input type="password" id="admin-pass" placeholder="Mot de passe" />
+    <button onclick="checkPassword()">Entrer</button>
+    <p id="auth-error" style="color:red;"></p>
+    <br>
+    <button onclick="window.location.href='app.html'" style="background:#6b7280;">Retour à l'accueil</button>
+  </div>
+
+
+  <div class="container" id="admin-panel" style="display:none;">
+    <h2>Utilisateurs enregistrés</h2>
+    <table id="users-table">
+      <tr><th>Email</th><th>Action</th></tr>
+    </table>
+    <button id="reset-btn" onclick="resetUsers()">♻ Réinitialiser la liste</button>
+
+    <hr>
+    <h3>🧾 Modifier les fichiers texte</h3>
+
+    <div>
+      <label for="theme">🎨 Thème du mois :</label><br>
+      <textarea id="theme" rows="2" style="width:100%; margin-bottom:10px;"></textarea>
+    </div>
+
+    <div>
+      <label for="prix">🎁 Prix du mois :</label><br>
+      <textarea id="prix" rows="5" style="width:100%; margin-bottom:10px;"></textarea>
+    </div>
+
+    <div>
+      <label for="usernames">👤 Liste des utilisateurs :</label><br>
+      <textarea id="usernames" rows="6" style="width:100%; margin-bottom:10px;"></textarea>
+    </div>
+
+    <button onclick="saveTextFiles()">💾 Enregistrer les modifications</button>
+
+    <hr>
+    <div style="text-align:center;">
+      <button onclick="window.location.href='page_concours.html?admin'" style="background:#6366f1;">Aller à la page du concours</button>
+    <br><br>
+    <button onclick="window.location.href='app.html'" style="background:#6b7280;">Retour à l'accueil</button>
+    </div>
+  </div>
+
+  <script>
+    const PASSWORD = "!rec517!";
+
+    function checkPassword() {
+      const input = document.getElementById("admin-pass").value;
+      if (input === PASSWORD) {
+        document.getElementById("auth-container").style.display = "none";
+        document.getElementById("admin-panel").style.display = "block";
+        loadUsers();
+        loadTextFiles();
+      } else {
+        document.getElementById("auth-error").textContent = "Mot de passe incorrect.";
+      }
+    }
+
+    function loadUsers() {
+      fetch('/admin/users')
+        .then(res => res.json())
+        .then(users => {
+          const table = document.getElementById("users-table");
+          users.forEach(u => {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td>${u}</td><td><button onclick="removeUser('${u}')">🗑 Supprimer</button></td>`;
+            table.appendChild(row);
+          });
+        });
+    }
+
+    function removeUser(username) {
+      fetch('/admin/remove-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      }).then(() => location.reload());
+    }
+
+    function resetUsers() {
+      if (confirm("Réinitialiser complètement la liste des utilisateurs ?")) {
+        fetch('/admin/reset', { method: 'POST' })
+          .then(() => location.reload());
+      }
+    }
+
+    function loadTextFiles() {
+      fetch('/admin/theme').then(res => res.text()).then(txt => document.getElementById('theme').value = txt.trim());
+      fetch('/admin/prix').then(res => res.text()).then(txt => document.getElementById('prix').value = txt.trim());
+      fetch('/admin/usernames').then(res => res.text()).then(txt => document.getElementById('usernames').value = txt.trim());
+    }
+
+    function saveTextFiles() {
+      fetch('/admin/theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: document.getElementById('theme').value })
+      });
+      fetch('/admin/prix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: document.getElementById('prix').value })
+      });
+      fetch('/admin/usernames', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: document.getElementById('usernames').value })
+      });
+      alert("Modifications enregistrées !");
+    }
+  </script>
+</body>
+</html>

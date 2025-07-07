@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Concours Photo – Mois en cours</title>
+  <meta property="og:image:alt" content="Concours de photographie féminine et glamour">
+
+  <!-- 🔽 Meta pour aperçu réseaux sociaux -->
+  <meta property="og:title" content="Concours de Photos | Epics Photos">
+  <meta property="og:description" content="Participez avec vos plus belles photos féminines et votez pour élire les meilleures !">
+  <meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://res.cloudinary.com/dhezgooph/image/upload/v1751406709/apercu_pqbltg.jpg">
+    <meta property="og:type" content="website">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Concours de Photos | Epics Photos">
+  <meta name="twitter:description" content="Votez pour les meilleures photos et soumettez la vôtre dès aujourd'hui.">
+  <meta name="twitter:image" content="https://res.cloudinary.com/dhezgooph/image/upload/v1751406709/apercu_pqbltg.jpg">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: url('background.png') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      padding: 20px;
+    }
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.65);
+      padding: 40px 20px;
+      border-radius: 12px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+    .logo {
+      max-width: 160px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 15px;
+    }
+    p {
+      font-size: 1.1em;
+      line-height: 1.5em;
+    }
+    .cta {
+      margin-top: 30px;
+    }
+    .cta a {
+  display: inline-block;
+  background-color: #10b981;
+  color: white;
+  font-weight: 600;
+  padding: 14px 28px;
+  font-size: 1.1em;
+  text-decoration: none;
+  border-radius: 999px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.cta a:hover {
+  background-color: #059669;
+  transform: translateY(-2px);
+}
+
+    @media (max-width: 480px) {
+      h1 {
+        font-size: 1.6em;
+      }
+      p {
+        font-size: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <img src="logo.png" alt="Logo Concours Photo" class="logo">
+    <h1 id="titre-concours">Concours Photo – </h1>
+    <p id="description-concours"></p>
+    <div class="cta">
+      <a href="app.html">Accéder au site</a>
+    </div>
+  </div>
+
+  <script>
+    const moisFr = ["janvier", "février", "mars", "avril", "mai", "juin",
+                    "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+    const now = new Date();
+    const annee = now.getFullYear();
+    const mois = now.getMonth();
+
+    const dernierJour = new Date(annee, mois + 1, 0);
+    let dernierDimanche = new Date(dernierJour);
+    while (dernierDimanche.getDay() !== 0) {
+      dernierDimanche.setDate(dernierDimanche.getDate() - 1);
+    }
+
+    const jour = dernierDimanche.getDate();
+    const nomMois = moisFr[mois];
+
+    document.getElementById("titre-concours").textContent = `Concours Photo – ${nomMois.charAt(0).toUpperCase() + nomMois.slice(1)} ${annee}`;
+    document.getElementById("description-concours").innerHTML = 
+        `Participez à notre concours photo du mois de ${nomMois} !<br>
+         Envoyez votre plus belle photo avant <strong>dimanche ${jour} ${nomMois} à 18h</strong> pour tenter de gagner.`;
+  </script>
+</body>
+</html>
