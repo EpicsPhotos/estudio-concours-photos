@@ -1,141 +1,54 @@
-
 const express = require('express');
 const multer = require('multer');
-const sharp = require('sharp');
-const fs = require('fs');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require('path');
+const fs = require('fs');
+
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+cloudinary.config({
+  cloud_name: 'dhezgooph',
+  api_key: '261332123791848',
+  api_secret: 'T3Vu0vw1b4crf35NFPecBlHd_rw'
+});
 
-const ensurePhotosDir = () => {
-  const dir = path.join(__dirname, 'public', 'photos');
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-};
-ensurePhotosDir();
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'concours_photos',
+    format: async (req, file) => 'jpg',
+    public_id: (req, file) => Date.now() + '-' + file.originalname
+  }
+});
 
+const upload = multer({ storage: storage });
+const URLS_FILE = 'urls.txt';
+
+// Upload + enregistrement de l'URL dans urls.txt
 app.post('/upload', upload.single('photo'), (req, res) => {
-  const username = req.body.username || 'anonymous';
-  const ext = 'jpg';
-  const filename = `${Date.now()}_${username}.${ext}`;
-  const filepath = path.join(__dirname, 'public', 'photos', filename);
+  if (!req.file || !req.file.path) {
+    return res.status(400).json({ error: "Erreur d'envoi" });
+  }
 
-  sharp(req.file.buffer)
-    .resize({ width: 1024 })
-    .jpeg({ quality: 70 })
-    .toFile(filepath, (err, info) => {
-      if (err) {
-        console.error("Erreur compression :", err);
-        return res.status(500).send("Erreur lors de l'enregistrement.");
-      }
-      res.redirect('/page_concours.html');
-    });
-});
-
-// ADMIN routes (pour theme, prix, usernames)
-
-app.get('/admin/theme', (req, res) => {
-  fs.readFile('./theme_du_mois.txt', 'utf8', (err, data) => {
-    if (err) return res.status(500).send('');
-    res.send(data);
+  fs.appendFile(URLS_FILE, req.file.path + '\n', (err) => {
+    if (err) console.error("Erreur d'enregistrement dans urls.txt");
   });
+
+  res.json({ url: req.file.path });
 });
-app.post('/admin/theme', (req, res) => {
-  fs.writeFile('./theme_du_mois.txt', req.body.content, err => {
-    if (err) return res.status(500).send('Erreur écriture');
-    res.sendStatus(200);
+
+// Route pour lire toutes les URLs
+app.get('/photos', (req, res) => {
+  fs.readFile(URLS_FILE, 'utf8', (err, data) => {
+    if (err) return res.status(500).json({ error: "Erreur lecture URLs" });
+    const urls = data.split('\n').filter(line => line.trim() !== '');
+    res.json(urls);
   });
 });
 
-app.get('/admin/prix', (req, res) => {
-  fs.readFile('./prix_du_mois.txt', 'utf8', (err, data) => {
-    if (err) return res.status(500).send('');
-    res.send(data);
-  });
-});
-app.post('/admin/prix', (req, res) => {
-  fs.writeFile('./prix_du_mois.txt', req.body.content, err => {
-    if (err) return res.status(500).send('Erreur écriture');
-    res.sendStatus(200);
-  });
-});
-
-app.get('/admin/usernames', (req, res) => {
-  fs.readFile('./usernames.txt', 'utf8', (err, data) => {
-    if (err) return res.status(500).send('');
-    res.send(data);
-  });
-});
-app.post('/admin/usernames', (req, res) => {
-  fs.writeFile('./usernames.txt', req.body.content, err => {
-    if (err) return res.status(500).send('Erreur écriture');
-    res.sendStatus(200);
-  });
-});
-
-app.get('/admin/users', (req, res) => {
-  fs.readFile('./usernames.txt', 'utf8', (err, data) => {
-    if (err) return res.status(500).send([]);
-    const list = data.split('\n').filter(Boolean);
-    res.json(list);
-  });
-});
-app.post('/admin/remove-user', express.json(), (req, res) => {
-  const username = req.body.username;
-  fs.readFile('./usernames.txt', 'utf8', (err, data) => {
-    if (err) return res.status(500).send('Erreur lecture');
-    const updated = data.split('\n').filter(u => u.trim() !== username).join('\n');
-    fs.writeFile('./usernames.txt', updated + '\n', (err2) => {
-      if (err2) return res.status(500).send('Erreur écriture');
-      res.sendStatus(200);
-    });
-  });
-});
-app.post('/admin/reset', (req, res) => {
-  fs.writeFile('./usernames.txt', '', (err) => {
-    if (err) return res.status(500).send('Erreur reset');
-    res.sendStatus(200);
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Serveur en cours d'exécution sur http://localhost:${PORT}`);
-});
-
-
-app.delete('/photos/:filename', (req, res) => {
-  const fs = require('fs');
-  const path = require('path');
-  const photosDir = path.join(__dirname, 'public', 'photos');
-  const fileToDelete = path.join(photosDir, req.params.filename);
-
-  // Supprimer le fichier demandé
-  fs.unlink(fileToDelete, err => {
-    if (err) return res.status(500).send('Erreur suppression');
-
-    // Lire les autres fichiers
-    fs.readdir(photosDir, (err2, files) => {
-      if (err2) return res.status(500).send('Erreur lecture dossier');
-
-      const jpgs = files.filter(f => f.endsWith('.jpg') || f.endsWith('.jpeg')).sort();
-      const newFilenames = jpgs.map((f, i) => `photo (${i + 1}).jpg`);
-
-      // Renommer les fichiers restants
-      Promise.all(jpgs.map((oldName, idx) => {
-        const oldPath = path.join(photosDir, oldName);
-        const newPath = path.join(photosDir, newFilenames[idx]);
-        return fs.promises.rename(oldPath, newPath);
-      }))
-      .then(() => res.sendStatus(200))
-      .catch(e => {
-        console.error("Erreur renommage :", e);
-        res.status(500).send("Erreur renommage");
-      });
-    });
-  });
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Serveur lancé sur le port " + PORT));
